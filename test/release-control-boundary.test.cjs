@@ -21,6 +21,10 @@ const {
   verifyProbeReceipt,
 } = require("../scripts/release-control-boundary.cjs");
 const { validateWorkflows } = require("../scripts/validate-workflows.cjs");
+const {
+  readOidcClaims,
+  safeClaims,
+} = require("../scripts/oidc-claim-diagnostic.cjs");
 
 function exactEnvironment() {
   return {
@@ -122,4 +126,51 @@ test("checked workflows expose no production mutation or secret surface", () => 
     "staging-boundary-probe.yml",
     "verify.yml",
   ]);
+});
+
+test("OIDC diagnostic prints allowlisted claims without exposing either token", async () => {
+  const env = {
+    ...exactEnvironment(),
+    ACTIONS_ID_TOKEN_REQUEST_TOKEN: "request-token-" + "x".repeat(40),
+    ACTIONS_ID_TOKEN_REQUEST_URL: "https://example.test/oidc?api-version=1",
+  };
+  const payload = {
+    actor: "gitCarrot",
+    actor_id: CONTROL_REPOSITORY_OWNER_ID,
+    aud: `https://iam.googleapis.com/${PROBE_PROVIDER}`,
+    repository: CONTROL_REPOSITORY,
+    repository_id: "1305282821",
+    workflow_sha: "a".repeat(40),
+    exp: 9999999999,
+    jti: "must-not-be-printed",
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const oidcToken = `header.${encoded}.signature-secret`;
+  const calls = [];
+  const logs = [];
+  const claims = await readOidcClaims({
+    env,
+    fetchImpl: async (url, options) => {
+      calls.push({ url: String(url), options });
+      return new Response(JSON.stringify({ value: oidcToken }), { status: 200 });
+    },
+    logger: { log: (value) => logs.push(value) },
+  });
+  assert.equal(claims.repository, CONTROL_REPOSITORY);
+  assert.equal(claims.jti, undefined);
+  assert.match(calls[0].url, /audience=/);
+  assert.equal(
+    calls[0].options.headers.Authorization,
+    `Bearer ${env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`
+  );
+  const output = logs.join("\n");
+  assert.doesNotMatch(output, /request-token/);
+  assert.doesNotMatch(output, /signature-secret/);
+  assert.doesNotMatch(output, /must-not-be-printed/);
+});
+
+test("OIDC claim filter ignores every non-allowlisted field", () => {
+  assert.deepEqual(safeClaims({ sub: "safe", jti: "secret", exp: 1 }), {
+    sub: "safe",
+  });
 });

@@ -44,6 +44,17 @@ jobs:
           VENU_RELEASE_CONTROL_WORKFLOW_SHA: ${{ github.workflow_sha }}
         run: node scripts/release-control-boundary.cjs assert-context
 
+      - name: Print only allowlisted OIDC claims without the token
+        env:
+          VENU_RELEASE_CONTROL_BUCKET: venu-release-control-probe-1041272872928
+          VENU_RELEASE_CONTROL_CONFIRMATION: ${{ inputs.confirmation }}
+          VENU_RELEASE_CONTROL_OBJECT: probe/v1/release-control-boundary.json
+          VENU_RELEASE_CONTROL_PROJECT_ID: venuhi-staging
+          VENU_RELEASE_CONTROL_PROVIDER: projects/1041272872928/locations/global/workloadIdentityPools/github-release/providers/venu-control-probe
+          VENU_RELEASE_CONTROL_SERVICE_ACCOUNT: venu-release-control-probe@venuhi-staging.iam.gserviceaccount.com
+          VENU_RELEASE_CONTROL_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: node scripts/oidc-claim-diagnostic.cjs
+
       - name: Obtain short-lived read-only staging credentials
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:

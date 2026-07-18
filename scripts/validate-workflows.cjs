@@ -104,6 +104,7 @@ function validateWorkflows(root = ROOT) {
     "venu-release-control-probe@venuhi-staging.iam.gserviceaccount.com",
     "gs://venu-release-control-probe-1041272872928/probe/v1/release-control-boundary.json",
     "node scripts/release-control-boundary.cjs assert-context",
+    "node scripts/oidc-claim-diagnostic.cjs",
     "node scripts/release-control-boundary.cjs verify-receipt",
   ];
   if (required.some((value) => !probe.includes(value))) {
