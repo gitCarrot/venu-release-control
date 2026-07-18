@@ -20,7 +20,7 @@ const PROBE_SERVICE_ACCOUNT =
   `venu-release-control-probe@${PROBE_PROJECT_ID}.iam.gserviceaccount.com`;
 const PROBE_PROVIDER =
   `projects/${PROBE_PROJECT_NUMBER}/locations/global/workloadIdentityPools/` +
-  "github-release/providers/gitcarrot-venu-release-control-probe";
+  "github-release/providers/venu-control-probe";
 
 function fail(message) {
   throw new Error(`[release-control] ${message}`);

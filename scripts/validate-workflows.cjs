@@ -100,7 +100,7 @@ function validateWorkflows(root = ROOT) {
     "id-token: write",
     "contents: read",
     "PROBE_VENU_RELEASE_CONTROL_STAGING",
-    "projects/1041272872928/locations/global/workloadIdentityPools/github-release/providers/gitcarrot-venu-release-control-probe",
+    "projects/1041272872928/locations/global/workloadIdentityPools/github-release/providers/venu-control-probe",
     "venu-release-control-probe@venuhi-staging.iam.gserviceaccount.com",
     "gs://venu-release-control-probe-1041272872928/probe/v1/release-control-boundary.json",
     "node scripts/release-control-boundary.cjs assert-context",
