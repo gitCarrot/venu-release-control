@@ -1,0 +1,69 @@
+name: Probe isolated staging release boundary
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type PROBE_VENU_RELEASE_CONTROL_STAGING
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: venu-release-control-staging-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Read-only staging OIDC probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact control source without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install exact Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.13.1
+          cache: ""
+
+      - name: Assert exact manual staging-only context before OIDC
+        env:
+          VENU_RELEASE_CONTROL_BUCKET: venu-release-control-probe-1041272872928
+          VENU_RELEASE_CONTROL_CONFIRMATION: ${{ inputs.confirmation }}
+          VENU_RELEASE_CONTROL_OBJECT: probe/v1/release-control-boundary.json
+          VENU_RELEASE_CONTROL_PROJECT_ID: venuhi-staging
+          VENU_RELEASE_CONTROL_PROVIDER: projects/1041272872928/locations/global/workloadIdentityPools/github-release/providers/gitcarrot-venu-release-control-probe
+          VENU_RELEASE_CONTROL_SERVICE_ACCOUNT: venu-release-control-probe@venuhi-staging.iam.gserviceaccount.com
+          VENU_RELEASE_CONTROL_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: node scripts/release-control-boundary.cjs assert-context
+
+      - name: Obtain short-lived read-only staging credentials
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: projects/1041272872928/locations/global/workloadIdentityPools/github-release/providers/gitcarrot-venu-release-control-probe
+          service_account: venu-release-control-probe@venuhi-staging.iam.gserviceaccount.com
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Install exact Google Cloud CLI action
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
+        with:
+          version: "508.0.0"
+
+      - name: Read one fixed isolated staging receipt
+        run: >-
+          gcloud storage cat
+          gs://venu-release-control-probe-1041272872928/probe/v1/release-control-boundary.json
+          > "${RUNNER_TEMP}/release-control-boundary.json"
+
+      - name: Verify receipt proves no production mutation
+        run: >-
+          node scripts/release-control-boundary.cjs verify-receipt
+          "${RUNNER_TEMP}/release-control-boundary.json"

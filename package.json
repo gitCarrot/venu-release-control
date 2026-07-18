@@ -1,0 +1,13 @@
+{
+  "name": "venu-release-control",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "validate": "node scripts/validate-workflows.cjs",
+    "verify": "npm run validate && npm test"
+  }
+}
